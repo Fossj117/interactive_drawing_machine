@@ -1,0 +1,6 @@
+cairo
+pygame
+svgwrite
+board
+RPi.GPIO
+adafruit_seesaw
