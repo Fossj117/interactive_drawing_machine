@@ -1,6 +1,6 @@
-cairo
+pycairo
 pygame
 svgwrite
 board
 RPi.GPIO
-adafruit_seesaw
+adafruit-circuitpython-seesaw
