@@ -155,7 +155,8 @@ class Wedge(Element):
         self.inner_rect = pygame.Rect(rect_coord_from_center_radius(self.center, self.radius))
 
     def draw(self, screen): 
-        pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 3)
+        pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 1)
+        #pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 3)
         pygame.draw.line(screen, (120,120,120), self.center, self.inner_end_xy, 3)
         pygame.draw.line(screen, (120,120,120), self.center, self.inner_start_xy, 3)
 

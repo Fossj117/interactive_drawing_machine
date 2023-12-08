@@ -101,10 +101,9 @@ def main(pots, screen, pixels, drawing, input_pin):
 
         # UPDATE LEDS
         for i, pixel in enumerate(pixels):
-            pixel.fill((
-                0, 
-                0, 
-                potentiometer_to_color(values[i])))
+            pixel.fill(
+                ( 0, 0, min(255, max(potentiometer_to_color(values[i]), 0)))
+                )
 
         #UPDATE SCREEN
         for event in pygame.event.get():
