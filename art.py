@@ -57,9 +57,7 @@ def svg_arc(dwg, position, radius, rad_start, rad_end, color="black"):
             'large': 1 if rad_end - rad_start > math.pi else 0,
     }
 
-    path = """M %(x0)f,%(y0)f
-              A %(xradius)f,%(yradius)f %(ellipseRotation)f %(large)d,%(sweep)d %(x1)f,%(y1)f
-    """ % args
+    path = """M %(x0)f,%(y0)f A %(xradius)f,%(yradius)f %(ellipseRotation)f %(large)d,%(sweep)d %(x1)f,%(y1)f""" % args
 
     arc = dwg.path(d=path, fill="none", stroke=color, stroke_width=3)
     dwg.add(arc)
@@ -155,8 +153,8 @@ class Wedge(Element):
         self.inner_rect = pygame.Rect(rect_coord_from_center_radius(self.center, self.radius))
 
     def draw(self, screen): 
-        pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 1)
-        #pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 3)
+        #pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 1)
+        pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 3)
         pygame.draw.line(screen, (120,120,120), self.center, self.inner_end_xy, 3)
         pygame.draw.line(screen, (120,120,120), self.center, self.inner_start_xy, 3)
 
@@ -222,11 +220,14 @@ class ArtproofDrawing:
             curr_radius += layer_width + abs(random.gauss(self.values[4], self.values[4]/5))
 
         num_wedges = math.floor(abs(random.gauss(self.values[7]*10, self.values[7]*2)))
-        
+
         for i in range(num_wedges):
-            start_theta = random.random()*2*3.14
-            theta_size = abs(random.gauss(self.values[8]*3.14/6, self.values[8]*3.14/12))
-            elt = Wedge(self.center, self.values[9]*(self.max_radius-20), random.random()*2*3.14, start_theta + theta_size)
+            start_theta = random.random()*2*math.pi
+            theta_size = abs(random.gauss(self.values[8]*math.pi/12, self.values[8]*math.pi/12))
+            theta_size = abs(random.gauss(self.values[8]*math.pi/12, 0.0001))
+            radius = min(self.max_radius - 20, max(random.gauss(self.values[9]*self.max_radius/2, self.max_radius/5), 10))
+            #elt = Wedge(self.center, self.values[9]*(self.max_radius-20)+3, random.random()*2*math.pi, start_theta + theta_size)
+            elt = Wedge(self.center, radius, start_theta, start_theta + theta_size)
             self.elements.append(elt)
         
 
