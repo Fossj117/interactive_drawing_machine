@@ -3,6 +3,7 @@
 
 import board
 import RPi.GPIO as GPIO
+import os
 from adafruit_seesaw.seesaw import Seesaw 
 from adafruit_seesaw.analoginput import AnalogInput
 from adafruit_seesaw import neopixel
@@ -93,6 +94,8 @@ def main(pots, screen, pixels, drawing, input_pin):
                 drawing.to_svg("drawing_{seed}.svg".format(seed=seed))
                 last_printed_values = values
                 current_state = "MESSAGE"
+                os.system("vpype -c test_party_config.cfg read drawing_{seed}.svg linemerge linesort gwrite -p test_party_config drawing_{seed}.gcode".format(seed=seed))
+                os.system("python3 stream.py drawing_{seed}.gcode /dev/ttyUSB0".format(seed=seed))
 
             #GENERATE ART
             screen.fill(BACKGROUND_COLOR)
