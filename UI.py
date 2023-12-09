@@ -4,6 +4,8 @@
 import board
 import RPi.GPIO as GPIO
 import os
+import threading
+import time
 from adafruit_seesaw.seesaw import Seesaw 
 from adafruit_seesaw.analoginput import AnalogInput
 from adafruit_seesaw import neopixel
@@ -12,6 +14,27 @@ import pygame
 import random
 
 from art import ArtproofDrawing, intialize_pygame
+import stream
+
+plot_lock = threading.Lock()
+plotfile = None
+def plot_thread(plotter_port):
+    global plotfile, plot_lock
+    plot = stream.open_port_and_home(plotter_port, verbose=False)
+    while True:
+        plot_lock.acquire()
+        f = plotfile
+        plot_lock.release()
+        if f:
+            os.system("vpype read {filename} layout -m .5in -v top 5x7in write {filename}".format(filename=f)) #format the created svg to a 5x7 layout
+            os.system("vpype read party_signature.svg layout -m .5in -v bottom 5x7in read {filename} write {filename}".format(filename=f)) #add the signature svg
+            os.system("vpype -c test_party_config.cfg read {filename} linemerge linesort gwrite -p test_party_config {filename}.gcode".format(filename=f)) #create gcode from merged file
+            stream.stream_gcode(plot, open(f+".gcode"), verbose=True)
+            plot_lock.acquire()
+            plotfile = None
+            plot_lock.release()
+        else:
+            time.sleep(0.1)
 
 def initialize_GPIO(input_pin):
     GPIO.setwarnings(False) # Ignore warning for now
@@ -38,6 +61,7 @@ def potentiometer_to_color(value):
     return value/1023 * 255
 
 def main(pots, screen, pixels, drawing, input_pin): 
+    global plotfile, plot_lock
     '''
     This what runs the event loop
 
@@ -66,41 +90,47 @@ def main(pots, screen, pixels, drawing, input_pin):
     font = pygame.font.Font('freesansbold.ttf', 32)
 
     while True:
+        plot_lock.acquire()
+        plot_busy = (plotfile != None)
+        plot_name = plotfile
+        plot_lock.release()
 
-        if current_state == "MESSAGE":
+        screen.fill(BACKGROUND_COLOR)
 
-            text = font.render("Saved for printing! Number:{seed}".format(seed=seed), True, (0, 0, 0), (255, 255, 255))
-            textRect = text.get_rect()
-            textRect.center = (300,300)
-            screen.fill(BACKGROUND_COLOR)
-            screen.blit(text, textRect)
-            pygame.display.flip()
+        if plot_busy:
+            #text = font.render("Saved for printing! Number:{seed}".format(seed=seed), True, (0, 0, 0), (255, 255, 255))
+            text = font.render("BUSY Ploting: %s"%(plot_name), True, (0, 0, 0), (128, 128, 0))
+        else:
+            text = font.render("Ready!", True, (255, 255, 255), (0, 128, 0))
+        textRect = text.get_rect()
+        textRect.center = (300,900)
+        screen.blit(text, textRect)
 
-            if GPIO.input(input_pin) == GPIO.HIGH: # press again to go back
-                current_state = "DRAWING"
-                seed += 1
-                random.seed(seed)
+        #READ INPUTS
+        values = [pot.value for pot in pots]
+        if values != curr_values:
+            drawing.update(values)
+            curr_values = values
 
-        if current_state == "DRAWING":
+        #TODO show input hash
 
-            #READ INPUTS
-            values = [pot.value for pot in pots]
+        #GENERATE ART
+        drawing.draw()
+        pygame.display.flip()
+        
+        if (not plot_busy) and GPIO.input(input_pin) == GPIO.HIGH: #PRINTING
+            seed += 1
+            random.seed(seed)
+            fname = "drawing_{seed}.svg".format(seed=seed)
+            drawing.to_svg(fname)
+            last_printed_values = values
+            plot_lock.acquire()
+            plotfile = fname
+            plot_lock.release()
 
-            if values != curr_values:
-                drawing.update(values)
-                curr_values = values
-            
-            if GPIO.input(input_pin) == GPIO.HIGH and values != last_printed_values and current_state=="DRAWING": #PRINTING
-                drawing.to_svg("drawing_{seed}.svg".format(seed=seed))
-                last_printed_values = values
-                current_state = "MESSAGE"
-                os.system("vpype -c test_party_config.cfg read drawing_{seed}.svg linemerge linesort gwrite -p test_party_config drawing_{seed}.gcode".format(seed=seed))
-                os.system("python3 stream.py drawing_{seed}.gcode /dev/ttyUSB0".format(seed=seed))
+        #TODO handle save button
+        #if GPIO.input(input_pin) == GPIO.HIGH: # press again to go back
 
-            #GENERATE ART
-            screen.fill(BACKGROUND_COLOR)
-            drawing.draw()
-            pygame.display.flip()
 
         # UPDATE LEDS
         for i, pixel in enumerate(pixels):
@@ -116,18 +146,22 @@ def main(pots, screen, pixels, drawing, input_pin):
         
         clock.tick(FPS)
 
+
 if __name__ == "__main__":
 
     POT_ADDRESSES = [0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39] # the addresses of the potentiometers
     SCREEN_DIMENSIONS = (600,1024)
     DRAW_DIMENSIONS = (600,600)
     INPUT_PIN = 18
+    PLOTTER_PORT = "/dev/ttyUSB0"
 
     # initialization
     screen = intialize_pygame(SCREEN_DIMENSIONS) #reference to the pygame screen object
     sliders, pots = initialize_pots(POT_ADDRESSES) # references to the potentiometers
     pixels = initialize_pixels(sliders) # references to the LEDs
     initialize_GPIO(INPUT_PIN)
+    plotter_thread = threading.Thread(target=plot_thread, args=(PLOTTER_PORT,))
+    plotter_thread.start()
 
     drawing = ArtproofDrawing(dimensions=DRAW_DIMENSIONS, values=[pot.value for pot in pots], screen = screen) # the art object
 
