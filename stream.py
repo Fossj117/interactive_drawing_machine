@@ -56,9 +56,11 @@ def wait_idle(port, verbose=False):
     while not resp.startswith("<Idle"):
         port.write(b"?\n")
         resp = port.readline().decode('UTF8')
+        while not resp.startswith("<"):
+            time.sleep(0.1)
+            resp = port.readline().decode('UTF8')
         if verbose:
             print("status: " + resp)
-        time.sleep(0.1)
 
 def open_port_and_home(portname, verbose=False):
     s = serial.Serial(portname, 115200, timeout=1.0)
