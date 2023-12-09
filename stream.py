@@ -129,7 +129,7 @@ def stream_gcode(port, file, verbose=False):
         port.write(l_block.encode('utf-8') + b'\n') # Send g-code block to grbl
         if verbose : print("BUF:",str(sum(c_line)),"REC:",grbl_out)
 
-    wait_idle(s)
+    wait_idle(port)
     if verbose:
         print("G-code streaming finished!\n")
 
@@ -156,11 +156,11 @@ if __name__ == "__main__":
     else:
         stream_gcode(s, f, args.verbose)
 
-# Wait for user input after streaming is completed
-#print("WARNING: Wait until grbl completes buffered g-code blocks before exiting.")
-#raw_input("  Press <Enter> to exit and disable grbl.") 
+    # Wait for user input after streaming is completed
+    #print("WARNING: Wait until grbl completes buffered g-code blocks before exiting.")
+    #raw_input("  Press <Enter> to exit and disable grbl.") 
 
 
-# Close file and serial port
-f.close()
-s.close()
+    # Close file and serial port
+    f.close()
+    s.close()
