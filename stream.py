@@ -63,6 +63,7 @@ def wait_idle(port, verbose=False):
 def open_port_and_home(portname, verbose=False):
     s = serial.Serial(portname, 115200, timeout=1.0)
 
+    time.sleep(2)
     # Wake up grbl
     if verbose:
         print("Initializing grbl...")
@@ -74,9 +75,10 @@ def open_port_and_home(portname, verbose=False):
 
     #home machine
     s.write(b'$H\r\n')
-    line=s.readline()
-    assert(b'ok' in line)
-    wait_idle(s)
+    line=s.readline().decode('UTF8')
+    while not 'ok' in line:
+        line=s.readline().decode('UTF8')
+    wait_idle(s, verbose)
 
     return s
 
@@ -148,7 +150,7 @@ if __name__ == "__main__":
     # Initialize
     s = open_port_and_home(args.device_file, args.verbose)
     f = args.gcode_file
-    verbose = args.verbose
+    
     if args.settings :
         stream_settings(s, f, args.verbose)
     else:
