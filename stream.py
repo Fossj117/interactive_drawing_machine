@@ -118,7 +118,7 @@ def stream_gcode(port, file, verbose=False):
         c_line.append(len(l_block)+1) # Track number of characters in grbl serial read buffer
         grbl_out = ''
         while sum(c_line) >= RX_BUFFER_SIZE-1 | port.inWaiting() :
-            out_temp = str(port.readline()).strip() # Wait for grbl response
+            out_temp = port.readline().decode("UTF8").strip() # Wait for grbl response
             if verbose: print("T:",out_temp)
             if out_temp.find('ok') < 0 and out_temp.find('error') < 0 :
                 print("  Debug: ",out_temp) # Debug response
@@ -126,13 +126,25 @@ def stream_gcode(port, file, verbose=False):
                 grbl_out += out_temp;
                 g_count += 1 # Iterate g-code counter
                 grbl_out += str(g_count); # Add line finished indicator
-                del c_line[0] # Delete the block character count corresponding to the last 'ok'
+                #del c_line[0] # Delete the block character count corresponding to the last 'ok'
+                c_line.pop(0) # Delete the block character count corresponding to the last 'ok'
         if verbose: print("SND: " + str(l_count) + " : " + l_block)
         port.write(l_block.encode('utf-8') + b'\n') # Send g-code block to grbl
         if verbose : print("BUF:",str(sum(c_line)),"REC:",grbl_out)
 
-    wait_idle(port)
+    #read rest of responses
+    for _ in c_line:
+        out_temp = port.readline().decode("UTF8").strip() # Wait for grbl response
+        while len(out_temp)>0:
+            if verbose:
+                print("REC:",out_temp)
+            out_temp = port.readline().decode("UTF8").strip() # Wait for grbl response
+    #wait for final commands to finish
+    wait_idle(port, verbose)
+    #final "ok" once idle
+    out_temp = port.readline().decode("UTF8").strip() # Wait for grbl response
     if verbose:
+        print("REC:",out_temp)
         print("G-code streaming finished!\n")
 
 
