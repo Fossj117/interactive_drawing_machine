@@ -132,9 +132,23 @@ class Slice(Element):
 
         if self.has_fill:
             width = self.end_radius - self.start_radius
-            num_lines = math.floor(width/3)+1
+            num_lines = math.floor(width/3)
+
             for i in range(num_lines):
-                svg_arc(dwg, self.center, self.start_radius+i*3, self.start_theta, self.end_theta, color="black")
+                flip = ((i%2) == 1)
+                if flip:
+                    start = self.end_theta
+                    end = self.start_theta
+                else:
+                    start = self.start_theta
+                    end = self.end_theta
+                r = self.start_radius + 3*(i+1)
+                r_0 = self.start_radius + 3*(i)
+                p0 = xy_from_center_radius_theta(self.center, r_0, start)
+                p1 = xy_from_center_radius_theta(self.center, r, start)
+                dwg.add(dwg.line(p0, p1, stroke="black"))
+                #svg arc drawing must be in order or it continues the long way around
+                svg_arc(dwg, self.center, r, self.start_theta, self.end_theta, color="black")
 
 
 class Wedge(Element): 
