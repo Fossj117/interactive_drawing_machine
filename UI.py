@@ -26,8 +26,8 @@ def plot_thread(plotter_port):
         f = plotfile
         plot_lock.release()
         if f:
-            os.system("vpype read {filename} layout -m .5in -v top 5x7in write {filename}".format(filename=f)) #format the created svg to a 5x7 layout
-            os.system("vpype read party_signature.svg layout -m .5in -v bottom 5x7in read {filename} write {filename}".format(filename=f)) #add the signature svg
+            os.system("vpype read {filename} layout -m .5in -v top 5.5x7in linesimplify -t 0.05mm write {filename}".format(filename=f)) #format the created svg to a 5x7 layout
+            os.system("vpype read party_signature.svg layout -m .5in -v bottom 5.5x7in read {filename} write {filename}".format(filename=f)) #add the signature svg
             os.system("vpype -c test_party_config.cfg read {filename} linemerge linesort gwrite -p test_party_config {filename}.gcode".format(filename=f)) #create gcode from merged file
             stream.stream_gcode(plot, open(f+".gcode"), verbose=False)
             plot_lock.acquire()
