@@ -26,10 +26,7 @@ def plot_thread(plotter_port):
         f = plotfile
         plot_lock.release()
         if f:
-            os.system("vpype read {filename} layout -m .5in -v top 5.5x7in linesimplify -t 0.05mm write {filename}".format(filename=f)) #format the created svg to a 5x7 layout
-            os.system("vpype read party_signature.svg layout -m .5in -v bottom 5.5x7in read {filename} write {filename}".format(filename=f)) #add the signature svg
-            os.system("vpype -c test_party_config.cfg read {filename} linemerge linesort gwrite -p test_party_config {filename}.gcode".format(filename=f)) #create gcode from merged file
-            stream.stream_gcode(plot, open(f+".gcode"), verbose=False)
+            stream.stream_gcode(plot, open(f), verbose=False)
             plot_lock.acquire()
             plotfile = None
             plot_lock.release()
@@ -119,14 +116,32 @@ def main(pots, screen, pixels, drawing, input_pin):
         pygame.display.flip()
         
         if (not plot_busy) and GPIO.input(input_pin) == GPIO.HIGH: #PRINTING
+            fname = "drawing_{seed}".format(seed=seed)
+            fname_svg = fname+".svg"
+            fname_gcode = fname+".gcode"
+
+            #put up processing message
+            screen.fill((120,128,0))
+            text = font.render("Processing: %s..."%(fname), True, (0, 0, 0), (128, 128, 0))
+            textRect = text.get_rect()
+            textRect.center = (300,512)
+            screen.blit(text, textRect)
+            pygame.display.flip()
+
+            #block while generating GCODE
+            drawing.to_svg(fname_svg)
+            os.system("vpype read {filename} layout -m .5in -v top 5.5x7in linesimplify -t 0.05mm write {filename}".format(filename=fname_svg)) #format the created svg to a 5x7 layout
+            os.system("vpype read party_signature.svg layout -m .5in -v bottom 5.5x7in read {filename} write {filename}".format(filename=fname_svg)) #add the signature svg
+            os.system("vpype -c test_party_config.cfg read {svg} linemerge linesort gwrite -p test_party_config {gcode}".format(svg=fname_svg, gcode=fname_gcode)) #create gcode from merged file
+
+            #signal to serial thread new gcode is available
+            plot_lock.acquire()
+            plotfile = fname_gcode
+            plot_lock.release()
+
             seed += 1
             random.seed(seed)
-            fname = "drawing_{seed}.svg".format(seed=seed)
-            drawing.to_svg(fname)
             last_printed_values = values
-            plot_lock.acquire()
-            plotfile = fname
-            plot_lock.release()
 
         #TODO handle save button
         #if GPIO.input(input_pin) == GPIO.HIGH: # press again to go back
