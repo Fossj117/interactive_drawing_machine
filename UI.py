@@ -160,10 +160,11 @@ if __name__ == "__main__":
     sliders, pots = initialize_pots(POT_ADDRESSES) # references to the potentiometers
     pixels = initialize_pixels(sliders) # references to the LEDs
     initialize_GPIO(INPUT_PIN)
-    plotter_thread = threading.Thread(target=plot_thread, args=(PLOTTER_PORT,))
+    plotter_thread = threading.Thread(target=plot_thread, args=(PLOTTER_PORT,), daemon=True)
     plotter_thread.start()
 
     drawing = ArtproofDrawing(dimensions=DRAW_DIMENSIONS, values=[pot.value for pot in pots], screen = screen) # the art object
 
     # main loop
     main(pots = pots, screen = screen, pixels=pixels, drawing=drawing, input_pin=INPUT_PIN)
+
