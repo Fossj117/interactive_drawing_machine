@@ -242,13 +242,13 @@ class ArtproofDrawing:
             
             curr_radius += layer_width + abs(random.gauss(self.values[4], self.values[4]/5))
 
-        num_wedges = math.floor(abs(random.gauss(self.values[7]*10, self.values[7]*2)))
+        num_wedges = math.floor(abs(random.gauss(self.values[7]*16, self.values[7]*2)))
 
         for i in range(num_wedges):
-            start_theta = random.random()*2*math.pi
-            theta_size = abs(random.gauss(self.values[8]*math.pi/12, self.values[8]*math.pi/12))
-            theta_size = abs(random.gauss(self.values[8]*math.pi/12, 0.0001))
-            radius = min(self.max_radius - 20, max(random.gauss(self.values[9]*self.max_radius/2, self.max_radius/5), 10))
+            theta_size = random.uniform(0.03,0.2)+abs(random.gauss(self.values[8]*math.pi/6, .001))
+            start_theta = (random.random()*2*math.pi)-(theta_size/2)
+            #theta_size = abs(random.gauss(self.values[8]*math.pi/12, self.values[8]*math.pi/12))
+            radius = min(self.max_radius - 20, max(random.gauss(self.values[9]*self.max_radius/1.5, self.max_radius/5), 30))
             #elt = Wedge(self.center, self.values[9]*(self.max_radius-20)+3, random.random()*2*math.pi, start_theta + theta_size)
             elt = Wedge(self.center, radius, start_theta, start_theta + theta_size)
             self.elements.append(elt)
