@@ -89,7 +89,7 @@ class Element:
 
 class Slice(Element):
 
-    def __init__(self, center, start_theta, end_theta, start_radius, end_radius, has_fill = False):
+    def __init__(self, center, start_theta, end_theta, start_radius, end_radius, has_fill = False, fill_factor=1.0):
 
         self.center = center
         self.start_theta = start_theta
@@ -97,6 +97,7 @@ class Slice(Element):
         self.start_radius = start_radius
         self.end_radius = end_radius
         self.has_fill = has_fill
+        self.fill_factor = fill_factor
 
         # Coordinates of the corners of the slice
         self.inner_start_xy = xy_from_center_radius_theta(self.center, self.start_radius, self.start_theta)
@@ -118,9 +119,12 @@ class Slice(Element):
 
         if self.has_fill: 
             width = self.end_radius - self.start_radius
-            num_lines = math.floor(width/3)+1
+            min_spacing = 2.5
+            num_lines = max(math.floor(self.fill_factor * width/min_spacing), 1)
+            line_spacing = width/(num_lines)
             for i in range(num_lines):
-                pygame.draw.arc(screen, self.LINE_COLOR, rect_coord_from_center_radius(self.center, self.start_radius+i*3), self.start_theta, self.end_theta, 4)
+                r = self.start_radius + i*line_spacing
+                pygame.draw.arc(screen, self.LINE_COLOR, rect_coord_from_center_radius(self.center, r), self.start_theta, self.end_theta, 4)
 
 
     def to_svg(self, dwg):
@@ -134,6 +138,9 @@ class Slice(Element):
         if self.has_fill:
             width = self.end_radius - self.start_radius
             num_lines = math.floor(width/3)
+            min_spacing = 2.5
+            num_lines = max(math.floor(self.fill_factor * width/min_spacing), 1)
+            line_spacing = width/(num_lines+1)
 
             for i in range(num_lines):
                 flip = ((i%2) == 1)
@@ -143,8 +150,8 @@ class Slice(Element):
                 else:
                     start = self.start_theta
                     end = self.end_theta
-                r = self.start_radius + 3*(i+1)
-                r_0 = self.start_radius + 3*(i)
+                r = self.start_radius + line_spacing*(i+1)
+                r_0 = self.start_radius + line_spacing*(i)
                 p0 = xy_from_center_radius_theta(self.center, r_0, start)
                 p1 = xy_from_center_radius_theta(self.center, r, start)
                 dwg.add(dwg.line(p0, p1, stroke="black"))
@@ -228,7 +235,7 @@ class ArtproofDrawing:
             for j in range(num_elts_in_layer): # build elements
                 if self.values[5] > random.random(): # element is included
                     fillval = self.values[6] > random.random()
-                    elt = Slice(self.center, j*elt_size_in_radians, (j+1)*elt_size_in_radians, curr_radius, curr_radius + layer_width, has_fill = fillval)
+                    elt = Slice(self.center, j*elt_size_in_radians, (j+1)*elt_size_in_radians, curr_radius, curr_radius + layer_width, has_fill = fillval, fill_factor = self.values[4])
                     self.elements.append(elt)
             
             curr_radius += layer_width + abs(random.gauss(self.values[4], self.values[4]/5))
@@ -263,7 +270,7 @@ class ArtproofDrawing:
 
 def run_artproof_test(): 
     screen = intialize_pygame((600, 600))
-    BACKGROUND_COLOR = pygame.Color('white')
+    BACKGROUND_COLOR = (255,255,255)
 
     # coords = rect_coord_from_center_radius((300, 300), 100)
     # my_slice = Slice((300, 300), 3.14, 3.14+0.7, 100, 200)
