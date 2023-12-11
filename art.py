@@ -66,7 +66,8 @@ def svg_arc(dwg, position, radius, rad_start, rad_end, color="black"):
     # dwg.add(dwg.circle((x0, y0), r=2, stroke="green", fill="green"))
     # dwg.add(dwg.circle((x1, y1), r=2, stroke="red", fill="red"))
 
-class Element: 
+class Element:
+    LINE_COLOR = (0, 0, 0)
     def __init__(self): 
         pass 
     
@@ -110,16 +111,16 @@ class Slice(Element):
         
     def draw(self, screen):
         
-        pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 3)
-        pygame.draw.arc(screen, (120,120,120), self.outer_rect, self.start_theta, self.end_theta, 3)
-        pygame.draw.line(screen, (120,120,120), self.inner_start_xy, self.outer_start_xy, 3)
-        pygame.draw.line(screen, (120,120,120), self.inner_end_xy, self.outer_end_xy, 3) # problem one
+        pygame.draw.arc(screen, self.LINE_COLOR, self.inner_rect, self.start_theta, self.end_theta, 3)
+        pygame.draw.arc(screen, self.LINE_COLOR, self.outer_rect, self.start_theta, self.end_theta, 3)
+        pygame.draw.line(screen, self.LINE_COLOR, self.inner_start_xy, self.outer_start_xy, 3)
+        pygame.draw.line(screen, self.LINE_COLOR, self.inner_end_xy, self.outer_end_xy, 3) # problem one
 
         if self.has_fill: 
             width = self.end_radius - self.start_radius
             num_lines = math.floor(width/3)+1
             for i in range(num_lines):
-                pygame.draw.arc(screen, (120,120,120), rect_coord_from_center_radius(self.center, self.start_radius+i*3), self.start_theta, self.end_theta, 4)
+                pygame.draw.arc(screen, self.LINE_COLOR, rect_coord_from_center_radius(self.center, self.start_radius+i*3), self.start_theta, self.end_theta, 4)
 
 
     def to_svg(self, dwg):
@@ -167,10 +168,9 @@ class Wedge(Element):
         self.inner_rect = pygame.Rect(rect_coord_from_center_radius(self.center, self.radius))
 
     def draw(self, screen): 
-        #pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 1)
-        pygame.draw.arc(screen, (120,120,120), self.inner_rect, self.start_theta, self.end_theta, 3)
-        pygame.draw.line(screen, (120,120,120), self.center, self.inner_end_xy, 3)
-        pygame.draw.line(screen, (120,120,120), self.center, self.inner_start_xy, 3)
+        pygame.draw.arc(screen, self.LINE_COLOR, self.inner_rect, self.start_theta, self.end_theta, 3)
+        pygame.draw.line(screen, self.LINE_COLOR, self.center, self.inner_end_xy, 3)
+        pygame.draw.line(screen, self.LINE_COLOR, self.center, self.inner_start_xy, 3)
 
     def to_svg(self, dwg): 
         svg_arc(dwg, self.center, self.radius, self.start_theta, self.end_theta, color="black")
