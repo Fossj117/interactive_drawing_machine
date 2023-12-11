@@ -234,9 +234,9 @@ class ArtproofDrawing:
 
             for j in range(num_elts_in_layer): # build elements
                 if self.values[5] > random.random(): # element is included
-                    fillval = self.values[6] > random.random()
-                    #fill_fact = self.values[4]**2.2
-                    fill_fact = min( 1.0, max(random.gauss(self.values[4], 0.1), 0))**2.2
+                    fillval = True
+                    #fill_fact = min( 1.0, max(random.gauss(self.values[4], 0.1), 0))**2
+                    fill_fact = min( 1.0, max(random.gauss(self.values[4], self.values[6]*2), 0))**2
                     elt = Slice(self.center, j*elt_size_in_radians, (j+1)*elt_size_in_radians, curr_radius, curr_radius + layer_width, has_fill = fillval, fill_factor = fill_fact)
                     self.elements.append(elt)
             
