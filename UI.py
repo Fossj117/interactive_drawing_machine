@@ -130,8 +130,8 @@ def main(pots, screen, pixels, drawing, input_pin):
 
             #block while generating GCODE
             drawing.to_svg(fname_svg)
-            os.system("vpype read {filename} layout -m .5in -v top 5.5x7in linesimplify -t 0.05mm write {filename}".format(filename=fname_svg)) #format the created svg to a 5x7 layout
-            os.system("vpype read party_signature.svg layout -m .5in -v bottom 5.5x7in read {filename} write {filename}".format(filename=fname_svg)) #add the signature svg
+            os.system("vpype read {filename} scaleto 4.5in 4.5in layout -m .5in -v top 5.5x7in linesimplify -t 0.05mm write {filename}".format(filename=fname_svg)) #format the created svg to a 5x7 layout
+            os.system("vpype read party_signature.svg layout -h center -v bottom 5.5x6.5in read {filename} write {filename}".format(filename=fname_svg)) #add the signature svg
             os.system("vpype -c test_party_config.cfg read {svg} linemerge linesort gwrite -p test_party_config {gcode}".format(svg=fname_svg, gcode=fname_gcode)) #create gcode from merged file
 
             #signal to serial thread new gcode is available

@@ -89,7 +89,7 @@ class Element:
 
 class Slice(Element):
 
-    def __init__(self, center, start_theta, end_theta, start_radius, end_radius, has_fill = False, fill_factor=1.0):
+    def __init__(self, center, start_theta, end_theta, start_radius, end_radius, has_fill = False, fill_factor=4):
 
         self.center = center
         self.start_theta = start_theta
@@ -209,7 +209,7 @@ class ArtproofDrawing:
         1: SD of layer width (0-max_radius/5)
         2: Expected number of elements per layer (1-20)
         3: SD of number of elements per layer (0-4)
-        4: Expected spacing between layers
+        4: Expected spacing between layers AND Fill Factor (% max fill)
         5: Probability that slice appears
         6: Probability of black fill 
         7: Expected number of wedges 
@@ -235,7 +235,9 @@ class ArtproofDrawing:
             for j in range(num_elts_in_layer): # build elements
                 if self.values[5] > random.random(): # element is included
                     fillval = self.values[6] > random.random()
-                    elt = Slice(self.center, j*elt_size_in_radians, (j+1)*elt_size_in_radians, curr_radius, curr_radius + layer_width, has_fill = fillval, fill_factor = self.values[4])
+                    #fill_fact = self.values[4]**2.2
+                    fill_fact = min( 1.0, max(random.gauss(self.values[4], 0.1), 0))**2.2
+                    elt = Slice(self.center, j*elt_size_in_radians, (j+1)*elt_size_in_radians, curr_radius, curr_radius + layer_width, has_fill = fillval, fill_factor = fill_fact)
                     self.elements.append(elt)
             
             curr_radius += layer_width + abs(random.gauss(self.values[4], self.values[4]/5))
