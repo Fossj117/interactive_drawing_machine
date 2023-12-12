@@ -20,13 +20,18 @@ plot_lock = threading.Lock()
 plotfile = None
 def plot_thread(plotter_port):
     global plotfile, plot_lock
-    plot = stream.open_port_and_home(plotter_port, verbose=False)
+    if plotter_port:
+        plot = stream.open_port_and_home(plotter_port, verbose=False)
     while True:
         plot_lock.acquire()
         f = plotfile
         plot_lock.release()
         if f:
-            stream.stream_gcode(plot, open(f), verbose=False)
+            if plotter_port:
+                stream.stream_gcode(plot, open(f), verbose=False)
+            else:
+                #fake serial sending by just sleeping
+                time.sleep(20)
             plot_lock.acquire()
             plotfile = None
             plot_lock.release()
@@ -185,20 +190,27 @@ def main(pots, screen, pixels, drawing, btnL_pin, btnR_pin):
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="run the Pl0tb0t")
+    parser.add_argument('-n', '--no-plotter', default=False, action="store_true", dest="noplotter", help="don't actually talk to Pl0tb0t, just fake plotting with a timeer")
+    parser.add_argument('-p', '--port', default='/dev/ttyUSB0', action="store", help="use PORT for Pl0tb0t connection", metavar='PORT')
+    args = parser.parse_args()
+
 
     POT_ADDRESSES = [0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39] # the addresses of the potentiometers
     SCREEN_DIMENSIONS = (600,1024)
     DRAW_DIMENSIONS = (600,600)
     INPUT1_PIN = 18
     INPUT2_PIN = 17
-    PLOTTER_PORT = "/dev/ttyUSB0"
 
     # initialization
     screen = intialize_pygame(SCREEN_DIMENSIONS) #reference to the pygame screen object
     sliders, pots = initialize_pots(POT_ADDRESSES) # references to the potentiometers
     pixels = initialize_pixels(sliders) # references to the LEDs
     initialize_GPIO(INPUT1_PIN, INPUT2_PIN)
-    plotter_thread = threading.Thread(target=plot_thread, args=(PLOTTER_PORT,), daemon=True)
+    port = args.port if not args.noplotter else None
+    plotter_thread = threading.Thread(target=plot_thread, args=(port,), daemon=True)
     plotter_thread.start()
 
     drawing = ArtproofDrawing(dimensions=DRAW_DIMENSIONS, values=[pot.value for pot in pots], screen = screen) # the art object
