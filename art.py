@@ -5,6 +5,7 @@ import math
 import pygame
 import random
 import svgwrite
+import numpy as np
 
 def intialize_pygame(dimensions): 
     '''
@@ -218,6 +219,7 @@ class ArtproofDrawing:
         '''    
 
         random.seed(10)
+        np.random.seed(10)
         self.elements = []
         self.values = [value/1023 for value in values]
 
@@ -235,8 +237,16 @@ class ArtproofDrawing:
             for j in range(num_elts_in_layer): # build elements
                 if self.values[5] > random.random(): # element is included
                     fillval = True
-                    #fill_fact = min( 1.0, max(random.gauss(self.values[4], 0.1), 0))**2
-                    fill_fact = min( 1.0, max(random.gauss(self.values[4], self.values[6]*2), 0))**2
+                    #mean = a/(a+b) in [0,1]
+                    #peakiness = (a+b) in (0, inf]
+                    #-> a = mean * peakiness
+                    #-> b = peakiness - a
+                    peakiness = 1e3/(1e4*(self.values[6]**2) + 1.0/1e6)
+                    a = self.values[4] * peakiness
+                    b = peakiness - a
+                    a = np.clip(a, 1/1e32, 1e32)
+                    b = np.clip(b, 1/1e32, 1e32)
+                    fill_fact = min( 1.0, max(np.random.beta(a,b), 0))**2
                     elt = Slice(self.center, j*elt_size_in_radians, (j+1)*elt_size_in_radians, curr_radius, curr_radius + layer_width, has_fill = fillval, fill_factor = fill_fact)
                     self.elements.append(elt)
             
