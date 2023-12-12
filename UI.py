@@ -33,10 +33,11 @@ def plot_thread(plotter_port):
         else:
             time.sleep(0.1)
 
-def initialize_GPIO(input_pin):
+def initialize_GPIO(btnL_pin, btnR_pin):
     GPIO.setwarnings(False) # Ignore warning for now
     #GPIO.setmode(GPIO.BOARD) # Use physical pin numbering
-    GPIO.setup(input_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
+    GPIO.setup(btnR_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
+    GPIO.setup(btnL_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
 
 def initialize_pots(addresses):
     '''
@@ -57,7 +58,7 @@ def initialize_pixels(pots):
 def potentiometer_to_color(value): 
     return value/1023 * 255
 
-def main(pots, screen, pixels, drawing, input_pin): 
+def main(pots, screen, pixels, drawing, btnL_pin, btnR_pin):
     global plotfile, plot_lock
     '''
     This what runs the event loop
@@ -67,7 +68,8 @@ def main(pots, screen, pixels, drawing, input_pin):
         screen: the pygame screen object
         pixels: a list of NeoPixel objects (LEDs)
         drawing: the art object
-        input_pin: the input pin for print button
+        btnL_pin: the input pin for save button
+        btnR_pinL the input pin for print button
     '''
 
     BACKGROUND_COLOR = pygame.Color('white')
@@ -96,7 +98,7 @@ def main(pots, screen, pixels, drawing, input_pin):
 
         if plot_busy:
             #text = font.render("Saved for printing! Number:{seed}".format(seed=seed), True, (0, 0, 0), (255, 255, 255))
-            text = font.render("BUSY Ploting: %s"%(plot_name), True, (0, 0, 0), (128, 128, 0))
+            text = font.render("BUSY Plotting: %s"%(plot_name), True, (0, 0, 0), (128, 128, 0))
         else:
             text = font.render("Ready!", True, (255, 255, 255), (0, 128, 0))
         textRect = text.get_rect()
@@ -115,7 +117,7 @@ def main(pots, screen, pixels, drawing, input_pin):
         drawing.draw()
         pygame.display.flip()
         
-        if (not plot_busy) and GPIO.input(input_pin) == GPIO.HIGH: #PRINTING
+        if (not plot_busy) and GPIO.input(btnR_pin) == GPIO.HIGH: #PRINTING
             fname = "drawing_{seed}".format(seed=seed)
             fname_svg = fname+".svg"
             fname_gcode = fname+".gcode"
@@ -131,7 +133,7 @@ def main(pots, screen, pixels, drawing, input_pin):
             #block while generating GCODE
             drawing.to_svg(fname_svg)
             os.system("vpype read {filename} scaleto 4.5in 4.5in layout -m .5in -v top 5.5x7in linesimplify -t 0.05mm write {filename}".format(filename=fname_svg)) #format the created svg to a 5x7 layout
-            os.system("vpype read party_signature.svg layout -h center -v bottom 5.5x6.5in read {filename} write {filename}".format(filename=fname_svg)) #add the signature svg
+            os.system("vpype read party_signature.svg scaleto 4.05in 1.05in layout -h center -v bottom 5.5x6.5in read {filename} write {filename}".format(filename=fname_svg)) #add the signature svg
             os.system("vpype -c test_party_config.cfg read {svg} linemerge linesort gwrite -p test_party_config {gcode}".format(svg=fname_svg, gcode=fname_gcode)) #create gcode from merged file
 
             #signal to serial thread new gcode is available
@@ -143,14 +145,34 @@ def main(pots, screen, pixels, drawing, input_pin):
             random.seed(seed)
             last_printed_values = values
 
-        #TODO handle save button
-        #if GPIO.input(input_pin) == GPIO.HIGH: # press again to go back
+        #SAVE BUTTON - essentially the same as GENERATE ART but can be done while busy as well and does not signal to serial
+        if GPIO.input(btnL_pin) == GPIO.HIGH: # press again to go back
+            fname = "drawing_{seed}".format(seed=seed)
+            fname_svg = fname+".svg"
+            fname_gcode = fname+".gcode"
 
+            #put up saving message
+            screen.fill((120,128,0))
+            text = font.render("Saving: %s..."%(fname), True, (0, 0, 0), (128, 128, 0))
+            textRect = text.get_rect()
+            textRect.center = (300,512)
+            screen.blit(text, textRect)
+            pygame.display.flip()
+
+            #block while generating SVG (and gcode as a time delay for legibility
+            drawing.to_svg(fname_svg)
+            os.system("vpype read {filename} scaleto 4.5in 4.5in layout -m .5in -v top 5.5x7in linesimplify -t 0.05mm write {filename}".format(filename=fname_svg)) #format the created svg to a 5x7 layout
+            os.system("vpype read party_signature.svg scaleto 4.05in 1.05in layout -h center -v bottom 5.5x6.5in read {filename} write {filename}".format(filename=fname_svg)) #add the signature svg
+            os.system("vpype -c test_party_config.cfg read {svg} linemerge linesort gwrite -p test_party_config {gcode}".format(svg=fname_svg, gcode=fname_gcode)) #create gcode from merged file
+ 
+            seed += 1
+            random.seed(seed)
+            last_printed_values = values
 
         # UPDATE LEDS
         for i, pixel in enumerate(pixels):
             pixel.fill(
-                ( 0, 0, min(255, max(potentiometer_to_color(values[i]), 0)))
+                (0, 0, min(255, max(potentiometer_to_color(values[i]), 0)))
                 )
 
         #UPDATE SCREEN
@@ -167,19 +189,19 @@ if __name__ == "__main__":
     POT_ADDRESSES = [0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39] # the addresses of the potentiometers
     SCREEN_DIMENSIONS = (600,1024)
     DRAW_DIMENSIONS = (600,600)
-    INPUT_PIN = 18
+    INPUT1_PIN = 18
+    INPUT2_PIN = 17
     PLOTTER_PORT = "/dev/ttyUSB0"
 
     # initialization
     screen = intialize_pygame(SCREEN_DIMENSIONS) #reference to the pygame screen object
     sliders, pots = initialize_pots(POT_ADDRESSES) # references to the potentiometers
     pixels = initialize_pixels(sliders) # references to the LEDs
-    initialize_GPIO(INPUT_PIN)
+    initialize_GPIO(INPUT1_PIN, INPUT2_PIN)
     plotter_thread = threading.Thread(target=plot_thread, args=(PLOTTER_PORT,), daemon=True)
     plotter_thread.start()
 
     drawing = ArtproofDrawing(dimensions=DRAW_DIMENSIONS, values=[pot.value for pot in pots], screen = screen) # the art object
 
     # main loop
-    main(pots = pots, screen = screen, pixels=pixels, drawing=drawing, input_pin=INPUT_PIN)
-
+    main(pots=pots, screen=screen, pixels=pixels, drawing=drawing, btnL_pin=INPUT1_PIN, btnR_pin=INPUT2_PIN)
