@@ -201,7 +201,7 @@ class ArtproofDrawing:
         self.values = []
         self.elements = []
 
-    def update(self, values):
+    def update(self, values, seed=0):
         '''
         Updates the elements based on the current values
 
@@ -218,8 +218,8 @@ class ArtproofDrawing:
         9: Expected wedge radius
         '''    
 
-        random.seed(10)
-        np.random.seed(10)
+        random.seed(seed)
+        np.random.seed(seed)
         self.elements = []
         self.values = [value/1023 for value in values]
 

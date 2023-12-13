@@ -11,7 +11,6 @@ from adafruit_seesaw.analoginput import AnalogInput
 from adafruit_seesaw import neopixel
 
 import pygame 
-import random
 
 from art import ArtproofDrawing, intialize_pygame
 import stream
@@ -63,7 +62,7 @@ def initialize_pixels(pots):
 def potentiometer_to_color(value): 
     return value/1023 * 255
 
-def main(pots, screen, pixels, drawing, btnL_pin, btnR_pin):
+def main(pots, screen, pixels, drawing, btnL_pin, btnR_pin, seedstart=0):
     global plotfile, plot_lock
     '''
     This what runs the event loop
@@ -80,8 +79,7 @@ def main(pots, screen, pixels, drawing, btnL_pin, btnR_pin):
     BACKGROUND_COLOR = pygame.Color('white')
     FPS = 5
 
-    seed = 0
-    random.seed(seed)
+    seed = seedstart
 
     curr_values = [pot.value for pot in pots]
     last_printed_values = curr_values
@@ -113,7 +111,7 @@ def main(pots, screen, pixels, drawing, btnL_pin, btnR_pin):
         #READ INPUTS
         values = [pot.value for pot in pots]
         if values != curr_values:
-            drawing.update(values)
+            drawing.update(values, seed)
             curr_values = values
 
         #TODO show input hash
@@ -147,7 +145,6 @@ def main(pots, screen, pixels, drawing, btnL_pin, btnR_pin):
             plot_lock.release()
 
             seed += 1
-            random.seed(seed)
             last_printed_values = values
 
         #SAVE BUTTON - essentially the same as GENERATE ART but can be done while busy as well and does not signal to serial
@@ -171,7 +168,6 @@ def main(pots, screen, pixels, drawing, btnL_pin, btnR_pin):
             os.system("vpype -c test_party_config.cfg read {svg} linemerge linesort gwrite -p test_party_config {gcode}".format(svg=fname_svg, gcode=fname_gcode)) #create gcode from merged file
  
             seed += 1
-            random.seed(seed)
             last_printed_values = values
 
         # UPDATE LEDS
@@ -195,6 +191,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="run the Pl0tb0t")
     parser.add_argument('-n', '--no-plotter', default=False, action="store_true", dest="noplotter", help="don't actually talk to Pl0tb0t, just fake plotting with a timeer")
     parser.add_argument('-p', '--port', default='/dev/ttyUSB0', action="store", help="use PORT for Pl0tb0t connection", metavar='PORT')
+    parser.add_argument('-s', '--seed', default=0, action="store", type=int, help="set seed value start position to avoid file overwrites")
     args = parser.parse_args()
 
 
@@ -216,4 +213,4 @@ if __name__ == "__main__":
     drawing = ArtproofDrawing(dimensions=DRAW_DIMENSIONS, values=[pot.value for pot in pots], screen = screen) # the art object
 
     # main loop
-    main(pots=pots, screen=screen, pixels=pixels, drawing=drawing, btnL_pin=INPUT1_PIN, btnR_pin=INPUT2_PIN)
+    main(pots=pots, screen=screen, pixels=pixels, drawing=drawing, btnL_pin=INPUT1_PIN, btnR_pin=INPUT2_PIN, seedstart=args.seed)
